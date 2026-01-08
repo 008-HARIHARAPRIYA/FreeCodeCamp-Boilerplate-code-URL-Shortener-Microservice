@@ -12,7 +12,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static("public"));
 
-// Store URLs in memory (short_url -> original_url)
+// Store URLs in memory
 const urlDatabase = {};
 let urlCounter = 1;
 
@@ -21,44 +21,44 @@ app.get("/", (req, res) => {
   res.sendFile(__dirname + "/views/index.html");
 });
 
-// POST new URL
+// POST: create short URL
 app.post("/api/shorturl", (req, res) => {
-  let originalUrl = req.body.url;
+  const originalUrl = req.body.url;
 
   try {
-    // Validate URL format
     const urlObj = new URL(originalUrl);
 
-    // DNS lookup to validate hostname
+    if (urlObj.protocol !== "http:" && urlObj.protocol !== "https:") {
+      return res.json({ error: "invalid url" });
+    }
+
     dns.lookup(urlObj.hostname, (err) => {
       if (err) {
         return res.json({ error: "invalid url" });
-      } else {
-        // Save URL and return JSON
-        const short_url = urlCounter++;
-        urlDatabase[short_url] = originalUrl;
-
-        return res.json({
-          original_url: originalUrl,
-          short_url: short_url,
-        });
       }
+
+      const short_url = urlCounter++;
+      urlDatabase[short_url] = originalUrl;
+
+      res.json({
+        original_url: originalUrl,
+        short_url: short_url,
+      });
     });
-  } catch (err) {
-    // Invalid URL format
-    return res.json({ error: "invalid url" });
+  } catch {
+    res.json({ error: "invalid url" });
   }
 });
 
-// Redirect short URL
+// ✅ GET: redirect short URL (MISSING PART)
 app.get("/api/shorturl/:short_url", (req, res) => {
   const short_url = req.params.short_url;
   const originalUrl = urlDatabase[short_url];
 
   if (originalUrl) {
-    return res.redirect(originalUrl);
+    res.redirect(originalUrl);
   } else {
-    return res.json({ error: "No short URL found for given input" });
+    res.json({ error: "No short URL found for given input" });
   }
 });
 
